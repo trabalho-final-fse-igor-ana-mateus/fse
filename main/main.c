@@ -5,14 +5,24 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_http_client.h"
-#include "esp_log.h"
 #include "freertos/semphr.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "wifi.h"
 #include "mqtt.h"
+#include "dht11.h"
+#include "temperature.h"
+
+#define TEMPERATURE_SENSOR_PIN 5
+#define MAX_MESSAGE_LENGTH 50
+#define AVG_NUM_TEMP 10
 
 SemaphoreHandle_t conexaoWifiSemaphore;
 SemaphoreHandle_t conexaoMQTTSemaphore;
+SemaphoreHandle_t envioMqttMutex;
+
+QueueHandle_t fila_temperatura;
 
 void conectadoWifi(void * params)
 {
@@ -30,20 +40,24 @@ void conectadoWifi(void * params)
 
 void trataComunicacaoComServidor(void * params)
 {
-  char mensagem[50];
   char JsonAtributos[200];
+  
   if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY))
   {
+    xTaskCreate(&trataSensorDeTemperatura, "Leitura Sensor Temperatura", 2096, NULL, 1, NULL);
+    xTaskCreate(&trataMediaTemperaturaHumidade, "Calculo Média Temperatura Envio MQTT", 4096, NULL, 1, NULL);
+
     while(true)
     {
-       float temperatura = 20.0 + (float)rand()/(float)(RAND_MAX/10.0);
-       sprintf(mensagem, "{\"temperature\": %f}", temperatura);
-       mqtt_envia_mensagem("v1/devices/me/telemetry", mensagem);
+      sprintf(JsonAtributos, "{\"quantidade de pinos\": 5}");
 
-       sprintf(JsonAtributos, "{\"quantidade de pinos\": 5,\n\"umidade\": 20}");
-       mqtt_envia_mensagem("v1/devices/me/attributes", JsonAtributos);
-       
-       vTaskDelay(3000 / portTICK_PERIOD_MS);
+      if(xSemaphoreTake(envioMqttMutex, portMAX_DELAY)) {
+        mqtt_envia_mensagem("v1/devices/me/attributes", JsonAtributos);
+
+        xSemaphoreGive(envioMqttMutex);
+      }
+      
+      vTaskDelay(3000 / portTICK_PERIOD_MS);
     }
   }
 }
@@ -60,7 +74,10 @@ void app_main(void)
     
     conexaoWifiSemaphore = xSemaphoreCreateBinary();
     conexaoMQTTSemaphore = xSemaphoreCreateBinary();
+    envioMqttMutex = xSemaphoreCreateMutex();
     wifi_start();
+
+    fila_temperatura = xQueueCreate(AVG_NUM_TEMP, sizeof(TemperatureData));
 
     xTaskCreate(&conectadoWifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
     xTaskCreate(&trataComunicacaoComServidor, "Comunicação com Broker", 4096, NULL, 1, NULL);

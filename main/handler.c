@@ -1,7 +1,7 @@
 #include <string.h>
 
 #include "handler.h"
-#include "cjson.h"
+#include "cJSON.h"
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
