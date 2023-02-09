@@ -1,13 +1,16 @@
 /*
   Copyright (c) 2009-2017 Dave Gamble and cJSON contributors
+
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
   in the Software without restriction, including without limitation the rights
   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
   copies of the Software, and to permit persons to whom the Software is
   furnished to do so, subject to the following conditions:
+
   The above copyright notice and this permission notice shall be included in
   all copies or substantial portions of the Software.
+
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -32,16 +35,21 @@ extern "C"
 #ifdef __WINDOWS__
 
 /* When compiling for windows, we specify a specific calling convention to avoid issues where we are being called from a project with a different default calling convention.  For windows you have 3 define options:
+
 CJSON_HIDE_SYMBOLS - Define this in the case where you don't want to ever dllexport symbols
 CJSON_EXPORT_SYMBOLS - Define this on library build when you want to dllexport symbols (default)
 CJSON_IMPORT_SYMBOLS - Define this if you want to dllimport symbol
+
 For *nix builds that support visibility attribute, you can define similar behavior by
+
 setting default visibility to hidden by adding
 -fvisibility=hidden (for gcc)
 or
 -xldscope=hidden (for sun cc)
 to CFLAGS
+
 then using the CJSON_API_VISIBILITY flag to "export" the same symbols the way CJSON_EXPORT_SYMBOLS does
+
 */
 
 #define CJSON_CDECL __cdecl
@@ -207,7 +215,7 @@ CJSON_PUBLIC(cJSON *) cJSON_CreateArrayReference(const cJSON *child);
  * The parameter count cannot be greater than the number of elements in the number array, otherwise array access will be out of bounds.*/
 CJSON_PUBLIC(cJSON *) cJSON_CreateIntArray(const int *numbers, int count);
 CJSON_PUBLIC(cJSON *) cJSON_CreateFloatArray(const float *numbers, int count);
-CJSON_PUBLIC(cJSON *) cJSON_CreateDoubleArray(const double *numbers, int count);
+CJSON_PUBLIC(cJSON *) cJSON_HTTP_CREATEDoubleArray(const double *numbers, int count);
 CJSON_PUBLIC(cJSON *) cJSON_CreateStringArray(const char *const *strings, int count);
 
 /* Append item to the specified array/object. */
@@ -247,7 +255,7 @@ CJSON_PUBLIC(cJSON *) cJSON_Duplicate(const cJSON *item, cJSON_bool recurse);
 CJSON_PUBLIC(cJSON_bool) cJSON_Compare(const cJSON * const a, const cJSON * const b, const cJSON_bool case_sensitive);
 
 /* Minify a strings, remove blank characters(such as ' ', '\t', '\r', '\n') from strings.
- * The input pointer json cannot point to a read-only address area, such as a string constant, 
+ * The input pointer json cannot point to a read-only address area, such as a string constant,
  * but should point to a readable and writable adress area. */
 CJSON_PUBLIC(void) cJSON_Minify(char *json);
 

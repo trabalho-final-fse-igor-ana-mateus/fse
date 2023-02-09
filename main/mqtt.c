@@ -14,7 +14,7 @@
 #include "lwip/sockets.h"
 #include "lwip/dns.h"
 #include "lwip/netdb.h"
-#include "cjson.h"
+#include "cJSON.h"
 #include "handler.h"
 
 #include "esp_log.h"
