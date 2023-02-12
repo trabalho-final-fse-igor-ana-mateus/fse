@@ -22,8 +22,6 @@ SemaphoreHandle_t conexaoWifiSemaphore;
 SemaphoreHandle_t conexaoMQTTSemaphore;
 SemaphoreHandle_t envioMqttMutex;
 
-QueueHandle_t fila_temperatura;
-
 void conectadoWifi(void * params)
 {
   while(true) 
@@ -76,8 +74,6 @@ void app_main(void)
     conexaoMQTTSemaphore = xSemaphoreCreateBinary();
     envioMqttMutex = xSemaphoreCreateMutex();
     wifi_start();
-
-    fila_temperatura = xQueueCreate(AVG_NUM_TEMP, sizeof(TemperatureData));
 
     xTaskCreate(&conectadoWifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
     xTaskCreate(&trataComunicacaoComServidor, "Comunicação com Broker", 4096, NULL, 1, NULL);
