@@ -4,6 +4,7 @@
 void setup();
 void handleJSON(const char *resp);
 void detectaToque(void * params);
+void trataSensorInclinacao(void * params);
 void piscaLed(void * params);
 
 #endif
