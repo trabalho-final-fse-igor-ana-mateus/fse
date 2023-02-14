@@ -66,6 +66,10 @@ void flame_detector_setup() {
     // Configura detecção de borda de subida
     gpio_set_intr_type(FLAME_DETECTOR_DIGITAL_PIN, GPIO_INTR_POSEDGE);
 
+    // Configura led de alarme
+    esp_rom_gpio_pad_select_gpio(FLAME_DETECTOR_ALARM_LED_PIN);
+    gpio_set_direction(FLAME_DETECTOR_ALARM_LED_PIN, GPIO_MODE_OUTPUT);
+
     // Configura PWM do led de alarme
     ledc_timer_config_t timer_config = {
         .speed_mode = LEDC_LOW_SPEED_MODE,

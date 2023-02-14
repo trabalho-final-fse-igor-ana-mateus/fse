@@ -108,7 +108,7 @@ void app_main(void)
     wifi_start();
 
     interruption_queue = xQueueCreate(INTERRUPTION_QUEUE_SIZE, sizeof(int));
-    xTaskCreate(&handle_interruption,  "Trata interrupções", 2096, NULL, 1, NULL);
+    xTaskCreate(&handle_interruption,  "Trata interrupções", 2048, NULL, 1, NULL);
 
     gpio_install_isr_service(0);
     gpio_isr_handler_add(FLAME_DETECTOR_DIGITAL_PIN, gpio_isr_handler, (void *) FLAME_DETECTOR_DIGITAL_PIN);
