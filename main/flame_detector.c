@@ -14,12 +14,15 @@
 #include "esp_pthread.h"
 
 #include "flame_detector.h"
+#include "mqtt.h"
 
 #define FLAME_DETECTOR_ALARM_LED_PIN 2
 
 bool flame_alarm_on = false;
 
 SemaphoreHandle_t flame_alarm_mutex;
+
+extern SemaphoreHandle_t envioMqttMutex;
 
 bool has_flame_detector_sensor() {
     return FLAME_DETECTOR_DIGITAL_PIN > 0;
@@ -118,6 +121,12 @@ void flame_detector_turn_on_alarm() {
         pthread_create(&tid, 0, (void * (*)(void *)) turn_on_led_alarm_till_is_off, (void *) NULL);
 
         pthread_detach(tid);
+
+        if(xSemaphoreTake(envioMqttMutex, portMAX_DELAY)) {
+            mqtt_envia_mensagem("v1/devices/me/attributes", "{\"fire_alarm_on\": true}");
+
+            xSemaphoreGive(envioMqttMutex);
+        }
     }
 }
 
@@ -126,9 +135,15 @@ void flame_detector_posedge_handler() {
 }
 
 void flame_detector_alarm_button_handler() {
-    if (get_flame_alarm_on()) {
+    if (get_flame_alarm_on() || gpio_get_level(FLAME_DETECTOR_ALARM_LED_PIN)) {
         set_flame_alarm_on_to(false);
         ledc_fade_func_uninstall();
         gpio_set_level(FLAME_DETECTOR_ALARM_LED_PIN, 0);
+
+        if(xSemaphoreTake(envioMqttMutex, portMAX_DELAY)) {
+            mqtt_envia_mensagem("v1/devices/me/attributes", "{\"fire_alarm_on\": false}");
+
+            xSemaphoreGive(envioMqttMutex);
+        }
     }
 }
