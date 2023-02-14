@@ -12,6 +12,7 @@
 #include "wifi.h"
 #include "mqtt.h"
 #include "dht11.h"
+#include "nvs_helper.h"
 #include "temperature.h"
 #include "flame_detector.h"
 #include "sound_detector.h"
@@ -63,9 +64,7 @@ void conectadoWifi(void * params)
 }
 
 void trataComunicacaoComServidor(void * params)
-{
-  char JsonAtributos[200];
-  
+{ 
   if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY))
   {
     if (has_temperature_sensor()) {
@@ -77,17 +76,8 @@ void trataComunicacaoComServidor(void * params)
       xTaskCreate(&sound_detector_verify_task, "Leitura Sensor de Som", 1024, NULL, 1, NULL);
     }
 
-    while(true)
-    {
-      sprintf(JsonAtributos, "{\"quantidade de pinos\": 5, \"choque\": false}");
-
-      if(xSemaphoreTake(envioMqttMutex, portMAX_DELAY)) {
-        mqtt_envia_mensagem("v1/devices/me/attributes", JsonAtributos);
-
-        xSemaphoreGive(envioMqttMutex);
-      }
-      
-      vTaskDelay(3000 / portTICK_PERIOD_MS);
+    while (true) {
+      vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
   }
 }
@@ -95,12 +85,7 @@ void trataComunicacaoComServidor(void * params)
 void app_main(void)
 {
     // Inicializa o NVS
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
+    setup_nvs();
     
     conexaoWifiSemaphore = xSemaphoreCreateBinary();
     conexaoMQTTSemaphore = xSemaphoreCreateBinary();
@@ -119,6 +104,8 @@ void app_main(void)
 
     gpio_install_isr_service(0);
     gpio_isr_handler_add(FLAME_DETECTOR_DIGITAL_PIN, gpio_isr_handler, (void *) FLAME_DETECTOR_DIGITAL_PIN);
+
+    read_state_from_nvs();
 
     xTaskCreate(&conectadoWifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
     xTaskCreate(&trataComunicacaoComServidor, "Comunicação com Broker", 4096, NULL, 1, NULL);
