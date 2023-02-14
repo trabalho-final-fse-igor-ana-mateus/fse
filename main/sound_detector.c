@@ -14,8 +14,10 @@
 #include "esp_pthread.h"
 
 #include "sound_detector.h"
+#include "nvs_helper.h"
 
 #define SOUND_DETECTOR_VALUE_THRESHOLD 1350
+#define LASER_PIN CONFIG_LASER_PIN
 
 bool has_sound_detector_sensor() {
     return SOUND_DETECTOR_ANALOG_PIN > 0;
@@ -30,6 +32,21 @@ void sound_detector_setup() {
     // adc2_config(ADC_WIDTH_MAX);
     // não sei o que esse ADC_ATTEN_DB_xx é exatamente
     adc2_config_channel_atten(SOUND_DETECTOR_ANALOG_PIN, ADC_ATTEN_DB_0);
+
+    if (LASER_PIN > 0) {
+        esp_rom_gpio_pad_select_gpio(LASER_PIN);
+        gpio_set_direction(LASER_PIN, GPIO_MODE_OUTPUT);
+    }
+}
+
+void turn_on_laser() {
+    gpio_set_level(LASER_PIN, 1);
+    nvs_write_int_value("laser", 1);
+}
+
+void turn_off_laser() {
+    gpio_set_level(LASER_PIN, 0);
+    nvs_write_int_value("laser", 0);
 }
 
 void sound_detector_verify_task(void * params) {
@@ -41,8 +58,23 @@ void sound_detector_verify_task(void * params) {
 
         if (sound_value >= SOUND_DETECTOR_VALUE_THRESHOLD) {
             printf("Som passou do limiar configurado: %d", sound_value);
+            turn_on_laser();
+            
+            vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+            turn_off_laser();
         }
 
         vTaskDelay(250 / portTICK_PERIOD_MS);
     }
+}
+
+void sound_detector_read_state_from_nvs() {
+    int value;
+
+    if (nvs_read_int_value("laser", &value) && value == 1) {
+        turn_on_laser();
+    }
+
+    turn_off_laser();
 }

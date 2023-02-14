@@ -15,6 +15,6 @@ void set_flame_alarm_on_to(bool value);
 
 void flame_detector_alarm_button_handler();
 
-void read_state_from_nvs();
+void flame_detector_read_state_from_nvs();
 
 #endif

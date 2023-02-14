@@ -75,10 +75,6 @@ void trataComunicacaoComServidor(void * params)
     if (has_sound_detector_sensor()) {
       xTaskCreate(&sound_detector_verify_task, "Leitura Sensor de Som", 1024, NULL, 1, NULL);
     }
-
-    while (true) {
-      vTaskDelay(2000 / portTICK_PERIOD_MS);
-    }
   }
 }
 
@@ -105,7 +101,8 @@ void app_main(void)
     gpio_install_isr_service(0);
     gpio_isr_handler_add(FLAME_DETECTOR_DIGITAL_PIN, gpio_isr_handler, (void *) FLAME_DETECTOR_DIGITAL_PIN);
 
-    read_state_from_nvs();
+    flame_detector_read_state_from_nvs();
+    sound_detector_read_state_from_nvs();
 
     xTaskCreate(&conectadoWifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
     xTaskCreate(&trataComunicacaoComServidor, "Comunicação com Broker", 4096, NULL, 1, NULL);

@@ -152,7 +152,7 @@ void flame_detector_alarm_button_handler() {
     }
 }
 
-void read_state_from_nvs() {
+void flame_detector_read_state_from_nvs() {
     int value;
 
     if (nvs_read_int_value("fire_alarm_on", &value)) {
