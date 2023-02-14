@@ -14,6 +14,7 @@
 #include "dht11.h"
 #include "temperature.h"
 #include "flame_detector.h"
+#include "sound_detector.h"
 
 #define INTERRUPTION_QUEUE_SIZE 15
 
@@ -72,6 +73,10 @@ void trataComunicacaoComServidor(void * params)
       xTaskCreate(&handle_average_temperature, "Calculo Média Temperatura Envio MQTT", 4096, NULL, 1, NULL);
     }
 
+    if (has_sound_detector_sensor()) {
+      xTaskCreate(&sound_detector_verify_task, "Leitura Sensor de Som", 1024, NULL, 1, NULL);
+    }
+
     while(true)
     {
       sprintf(JsonAtributos, "{\"quantidade de pinos\": 5, \"choque\": false}");
@@ -104,6 +109,8 @@ void app_main(void)
     setup_temperature();
 
     flame_detector_setup();
+
+    sound_detector_setup();
 
     wifi_start();
 
