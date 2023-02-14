@@ -96,6 +96,7 @@ void * turn_on_led_alarm_till_is_off(void * args) {
 
     while (true) {
         if (!get_flame_alarm_on()) {
+            ledc_fade_func_uninstall();
             gpio_set_level(FLAME_DETECTOR_ALARM_LED_PIN, 0);
             break;
         }
@@ -105,7 +106,7 @@ void * turn_on_led_alarm_till_is_off(void * args) {
         ledc_set_fade_time_and_start(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 255, 1000, LEDC_FADE_WAIT_DONE);
     }
 
-    ledc_fade_func_uninstall();
+    // ledc_fade_func_uninstall();
     pthread_exit(NULL);
 }
 
