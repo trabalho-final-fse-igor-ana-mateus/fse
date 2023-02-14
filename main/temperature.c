@@ -10,14 +10,20 @@
 #include "mqtt.h"
 #include "dht11.h"
 
-#define TEMPERATURE_SENSOR_PIN 5
+#define SECONDS_TO_SEND_TEMPERATURE 3
+#define TEMPERATURE_SENSOR_PIN 23
 #define MAX_MESSAGE_LENGTH 50
 #define AVG_NUM_TEMP 10
+#define TEMPERATURE_QUEUE_LENGTH 23
 
 extern SemaphoreHandle_t envioMqttMutex;
 
-extern QueueHandle_t fila_temperatura;
+QueueHandle_t fila_temperatura;
 
+void setup_temperature() {
+  fila_temperatura = xQueueCreate(TEMPERATURE_QUEUE_LENGTH, sizeof(TemperatureData));
+}
+ 
 void trataSensorDeTemperatura(void * params) {
   DHT11_init(TEMPERATURE_SENSOR_PIN);
   
@@ -31,7 +37,7 @@ void trataSensorDeTemperatura(void * params) {
 
       printf("TEMPERATURE: %d %d\n", temperature_data.temperature, temperature_data.humidity);
 
-      long ret = xQueueSend(fila_temperatura, &temperature_data, 1000 / portTICK_PERIOD_MS);
+      long ret = xQueueSend(fila_temperatura, (void *) &temperature_data, 1000 / portTICK_PERIOD_MS);
 
       if (!ret) {
         ESP_LOGE("TEMPERATURE", "Falha ao adicionar temperatura na fila\n");
@@ -51,7 +57,7 @@ void trataMediaTemperaturaHumidade(void * params) {
   TemperatureData prev_data = { .temperature = 0, .humidity = 0 };
 
   while (true) {
-    if (xQueueReceive(fila_temperatura, &current_data, 1000 / portTICK_PERIOD_MS)) {
+    if (xQueueReceive(fila_temperatura, (void *) &current_data, 1000 / portTICK_PERIOD_MS)) {
       float avg_temperature;
       float avg_humidity;
 
@@ -60,7 +66,7 @@ void trataMediaTemperaturaHumidade(void * params) {
 
       printf("MEDIA_TEMPERATURE: %.2f %.2f\n", avg_temperature, avg_humidity);
 
-      if (counter % 10 == 0) {
+      if (counter % SECONDS_TO_SEND_TEMPERATURE == 0) {
         memset(mensagem, 0x0, MAX_MESSAGE_LENGTH * sizeof(char));
 
         sprintf(

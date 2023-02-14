@@ -6,6 +6,8 @@ typedef struct TemperatureData {
   int humidity;
 } TemperatureData;
 
+void setup_temperature();
+
 void trataSensorDeTemperatura(void * params);
 
 void trataMediaTemperaturaHumidade(void * params);

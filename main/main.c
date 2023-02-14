@@ -14,13 +14,11 @@
 #include "dht11.h"
 #include "temperature.h"
 
-#define TEMPERATURE_SENSOR_PIN 5
-#define MAX_MESSAGE_LENGTH 50
-#define AVG_NUM_TEMP 10
-
 SemaphoreHandle_t conexaoWifiSemaphore;
 SemaphoreHandle_t conexaoMQTTSemaphore;
 SemaphoreHandle_t envioMqttMutex;
+
+extern QueueHandle_t fila_temperatura;
 
 void conectadoWifi(void * params)
 {
@@ -43,11 +41,11 @@ void trataComunicacaoComServidor(void * params)
   if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY))
   {
     xTaskCreate(&trataSensorDeTemperatura, "Leitura Sensor Temperatura", 2096, NULL, 1, NULL);
-    xTaskCreate(&trataMediaTemperaturaHumidade, "Calculo Média Temperatura Envio MQTT", 4096, NULL, 1, NULL);
+    xTaskCreate(&trataMediaTemperaturaHumidade, "Calculo Média Temperatura Envio MQTT", 5120, NULL, 1, NULL);
 
     while(true)
     {
-      sprintf(JsonAtributos, "{\"quantidade de pinos\": 5}");
+      sprintf(JsonAtributos, "{\"quantidade de pinos\": 5, \"choque\": false}");
 
       if(xSemaphoreTake(envioMqttMutex, portMAX_DELAY)) {
         mqtt_envia_mensagem("v1/devices/me/attributes", JsonAtributos);
@@ -73,6 +71,9 @@ void app_main(void)
     conexaoWifiSemaphore = xSemaphoreCreateBinary();
     conexaoMQTTSemaphore = xSemaphoreCreateBinary();
     envioMqttMutex = xSemaphoreCreateMutex();
+    
+    setup_temperature();
+
     wifi_start();
 
     xTaskCreate(&conectadoWifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
