@@ -11,17 +11,22 @@
 #include "dht11.h"
 
 #define SECONDS_TO_SEND_TEMPERATURE 3
-#define TEMPERATURE_SENSOR_PIN 23
 #define MAX_MESSAGE_LENGTH 50
-#define AVG_NUM_TEMP 10
-#define TEMPERATURE_QUEUE_LENGTH 23
+#define TEMPERATURE_QUEUE_LENGTH 10
+#define TEMPERATURE_SENSOR_PIN CONFIG_TEMPERATURE_SENSOR_PIN
 
 extern SemaphoreHandle_t envioMqttMutex;
 
 QueueHandle_t fila_temperatura;
 
+bool has_temperature_sensor() {
+  return TEMPERATURE_SENSOR_PIN > 0;
+}
+
 void setup_temperature() {
-  fila_temperatura = xQueueCreate(TEMPERATURE_QUEUE_LENGTH, sizeof(TemperatureData));
+  if (has_temperature_sensor()) {
+    fila_temperatura = xQueueCreate(TEMPERATURE_QUEUE_LENGTH, sizeof(TemperatureData));
+  }
 }
  
 void trataSensorDeTemperatura(void * params) {

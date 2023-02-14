@@ -19,12 +19,16 @@
 #include "flame_detector.h"
 
 #define FLAME_DETECTOR_ALARM_LED_PIN 2
-#define FLAME_DETECTOR_DIGITAL_PIN 23
 #define FLAME_DETECTOR_TURN_OFF_ALARM_BUTTON 0
+#define FLAME_DETECTOR_DIGITAL_PIN CONFIG_FLAME_DETECTOR_PIN
 
 bool flame_alarm_on = false;
 
 SemaphoreHandle_t flame_alarm_mutex;
+
+bool has_flame_detector_sensor() {
+    return FLAME_DETECTOR_DIGITAL_PIN > 0;
+}
 
 bool get_flame_alarm_on() {
     bool ret = false;
@@ -47,18 +51,7 @@ void set_flame_alarm_on_to(bool value) {
 }
 
 void flame_detector_setup() {
-    // BOTÃO ALARME
-    
-    esp_rom_gpio_pad_select_gpio(FLAME_DETECTOR_TURN_OFF_ALARM_BUTTON);
-    gpio_set_direction(FLAME_DETECTOR_TURN_OFF_ALARM_BUTTON, GPIO_MODE_INPUT);
-
-    // Habilita pulldown
-    gpio_pulldown_en(FLAME_DETECTOR_TURN_OFF_ALARM_BUTTON);
-    // Desabilita pullup por segurança
-    gpio_pullup_dis(FLAME_DETECTOR_TURN_OFF_ALARM_BUTTON);
-
-    // Configura detecção de borda de subida
-    gpio_set_intr_type(FLAME_DETECTOR_TURN_OFF_ALARM_BUTTON, GPIO_INTR_ANYEDGE);
+    if (!has_flame_detector_sensor()) return;
 
     // DETECTOR DE CHAMA
 
@@ -99,7 +92,7 @@ void flame_detector_setup() {
     flame_alarm_mutex = xSemaphoreCreateMutex();
 }
 
-void turn_on_led_alarm_till_is_off(void * args) {
+void * turn_on_led_alarm_till_is_off(void * args) {
     ledc_fade_func_install(0);
 
     while (true) {
@@ -122,7 +115,7 @@ void flame_detector_turn_on_alarm() {
         pthread_t tid;
         set_flame_alarm_on_to(true);
 
-        pthread_create(&tid, 0, &turn_on_led_alarm_till_is_off, NULL);
+        pthread_create(&tid, 0, (void * (*)(void *)) turn_on_led_alarm_till_is_off, (void *) NULL);
 
         pthread_detach(tid);
     }

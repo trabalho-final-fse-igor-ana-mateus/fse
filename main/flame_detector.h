@@ -1,6 +1,10 @@
 #ifndef FLAME_DETECTOR_H
 #define FLAME_DETECTOR_H
 
+#define FLAME_DETECTOR_DIGITAL_PIN CONFIG_FLAME_DETECTOR_PIN
+
+bool has_flame_detector_sensor();
+
 void flame_detector_setup();
 
 void flame_detector_posedge_handler();

@@ -13,12 +13,39 @@
 #include "mqtt.h"
 #include "dht11.h"
 #include "temperature.h"
+#include "flame_detector.h"
+
+#define INTERRUPTION_QUEUE_SIZE 15
 
 SemaphoreHandle_t conexaoWifiSemaphore;
 SemaphoreHandle_t conexaoMQTTSemaphore;
 SemaphoreHandle_t envioMqttMutex;
 
+QueueHandle_t interruption_queue;
+
 extern QueueHandle_t fila_temperatura;
+
+static void IRAM_ATTR gpio_isr_handler(void * args) {
+  int pin = (int) args;
+  
+  xQueueSendFromISR(interruption_queue, &pin, NULL);
+}
+
+void handle_interruption(void * params) {
+    int pin;
+
+    while (true) {
+      if (xQueueReceive(interruption_queue, &pin, portMAX_DELAY)) {
+        printf("Interrupt in pin %d\n", pin);
+
+        if (pin == FLAME_DETECTOR_DIGITAL_PIN) {
+          if (gpio_get_level(FLAME_DETECTOR_DIGITAL_PIN)) {
+            flame_detector_posedge_handler();
+          }
+        }
+      }
+    }
+}
 
 void conectadoWifi(void * params)
 {
@@ -40,8 +67,10 @@ void trataComunicacaoComServidor(void * params)
   
   if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY))
   {
-    xTaskCreate(&trataSensorDeTemperatura, "Leitura Sensor Temperatura", 2096, NULL, 1, NULL);
-    xTaskCreate(&trataMediaTemperaturaHumidade, "Calculo Média Temperatura Envio MQTT", 5120, NULL, 1, NULL);
+    if (has_temperature_sensor()) {
+      xTaskCreate(&trataSensorDeTemperatura, "Leitura Sensor Temperatura", 2096, NULL, 1, NULL);
+      xTaskCreate(&trataMediaTemperaturaHumidade, "Calculo Média Temperatura Envio MQTT", 5120, NULL, 1, NULL);
+    }
 
     while(true)
     {
@@ -74,7 +103,15 @@ void app_main(void)
     
     setup_temperature();
 
+    flame_detector_setup();
+
     wifi_start();
+
+    interruption_queue = xQueueCreate(INTERRUPTION_QUEUE_SIZE, sizeof(int));
+    xTaskCreate(&handle_interruption,  "Trata interrupções", 2096, NULL, 1, NULL);
+
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(FLAME_DETECTOR_DIGITAL_PIN, gpio_isr_handler, (void *) FLAME_DETECTOR_DIGITAL_PIN);
 
     xTaskCreate(&conectadoWifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
     xTaskCreate(&trataComunicacaoComServidor, "Comunicação com Broker", 4096, NULL, 1, NULL);
