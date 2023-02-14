@@ -12,8 +12,8 @@ bool has_temperature_sensor();
 
 void setup_temperature();
 
-void trataSensorDeTemperatura(void * params);
+void handle_temperature_sensor(void * params);
 
-void trataMediaTemperaturaHumidade(void * params);
+void handle_average_temperature(void * params);
 
 #endif

@@ -68,8 +68,8 @@ void trataComunicacaoComServidor(void * params)
   if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY))
   {
     if (has_temperature_sensor()) {
-      xTaskCreate(&trataSensorDeTemperatura, "Leitura Sensor Temperatura", 2096, NULL, 1, NULL);
-      xTaskCreate(&trataMediaTemperaturaHumidade, "Calculo Média Temperatura Envio MQTT", 5120, NULL, 1, NULL);
+      xTaskCreate(&handle_temperature_sensor, "Leitura Sensor Temperatura", 2048, NULL, 1, NULL);
+      xTaskCreate(&handle_average_temperature, "Calculo Média Temperatura Envio MQTT", 4096, NULL, 1, NULL);
     }
 
     while(true)

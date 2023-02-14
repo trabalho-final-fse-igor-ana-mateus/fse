@@ -29,7 +29,7 @@ void setup_temperature() {
   }
 }
  
-void trataSensorDeTemperatura(void * params) {
+void handle_temperature_sensor(void * params) {
   DHT11_init(TEMPERATURE_SENSOR_PIN);
   
   while(true) {
@@ -55,7 +55,7 @@ void trataSensorDeTemperatura(void * params) {
   }
 }
 
-void trataMediaTemperaturaHumidade(void * params) {
+void handle_average_temperature(void * params) {
   int counter = 1;
   char mensagem[MAX_MESSAGE_LENGTH];
   TemperatureData current_data;

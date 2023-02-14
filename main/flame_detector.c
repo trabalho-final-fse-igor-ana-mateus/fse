@@ -1,6 +1,3 @@
-#ifndef FLAME_DETECTOR_H
-#define FLAME_DETECTOR_H
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,8 +16,6 @@
 #include "flame_detector.h"
 
 #define FLAME_DETECTOR_ALARM_LED_PIN 2
-#define FLAME_DETECTOR_TURN_OFF_ALARM_BUTTON 0
-#define FLAME_DETECTOR_DIGITAL_PIN CONFIG_FLAME_DETECTOR_PIN
 
 bool flame_alarm_on = false;
 
@@ -136,5 +131,3 @@ void flame_detector_alarm_button_handler() {
         gpio_set_level(FLAME_DETECTOR_ALARM_LED_PIN, 0);
     }
 }
-
-#endif
