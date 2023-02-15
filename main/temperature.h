@@ -1,13 +1,19 @@
 #ifndef TEMPERATURE_H
 #define TEMPERATURE_H
 
+#define TEMPERATURE_SENSOR_PIN CONFIG_TEMPERATURE_SENSOR_PIN
+
 typedef struct TemperatureData {
   int temperature;
   int humidity;
 } TemperatureData;
 
-void trataSensorDeTemperatura(void * params);
+bool has_temperature_sensor();
 
-void trataMediaTemperaturaHumidade(void * params);
+void setup_temperature();
+
+void handle_temperature_sensor(void * params);
+
+void handle_average_temperature(void * params);
 
 #endif

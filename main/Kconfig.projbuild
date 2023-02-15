@@ -18,3 +18,30 @@ menu "Configuração do Wifi Configuration"
         help
             Configure o valor máximo de tentativas de conexão.
 endmenu
+
+menu "Configuração dos sensores"
+
+    config TEMPERATURE_SENSOR_PIN
+        int "Pino sensor de temperatura e umidade"
+        default -1
+        help
+            Pino do sensor de temperatura e umidade.
+
+    config FLAME_DETECTOR_PIN
+        int "Pino sensor de chama"
+        default -1
+        help
+            Pino do sensor de detecção de chama.
+
+    config SOUND_DETECTOR_PIN
+        int "Pino sensor de som"
+        default -1
+        help
+            Pino do sensor de detecção de som.
+
+    config LASER_PIN
+        int "Pino laser"
+        default -1
+        help
+            Pino do laser.
+endmenu
