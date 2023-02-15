@@ -26,7 +26,7 @@ void handleJSON(const char * response) {
       : "";
 
   if (strcmp(action, "turn_off_fire_alarm") == 0) {
-    flame_detector_alarm_button_handler();
+    flame_detector_turn_off_alarm();
   } else {
     //verifica parâmetro da luz
     cJSON *luz = cJSON_GetObjectItemCaseSensitive(params, "luz");

@@ -15,9 +15,13 @@
 
 #include "sound_detector.h"
 #include "nvs_helper.h"
+#include "mqtt.h"
 
-#define SOUND_DETECTOR_VALUE_THRESHOLD 1350
+#define SOUND_DETECTOR_VALUE_THRESHOLD 60
 #define LASER_PIN CONFIG_LASER_PIN
+#define SOUND_DETECTOR_ANALOG_PIN ADC1_CHANNEL_5
+
+extern SemaphoreHandle_t envioMqttMutex;
 
 bool has_sound_detector_sensor() {
     return SOUND_DETECTOR_ANALOG_PIN > 0;
@@ -29,10 +33,11 @@ void sound_detector_setup() {
     // CONFIGURAÇÃO DETECTOR DE SOM
 
     // aparentemente essa função não existe mais e o width é passado na get_raw 
-    // adc2_config(ADC_WIDTH_MAX);
+    // adc1_config(ADC_WIDTH_MAX);
     // não sei o que esse ADC_ATTEN_DB_xx é exatamente
-    adc2_config_channel_atten(SOUND_DETECTOR_ANALOG_PIN, ADC_ATTEN_DB_0);
-
+    adc1_config_width(ADC_WIDTH_BIT_10);
+    adc1_config_channel_atten(SOUND_DETECTOR_ANALOG_PIN, ADC_ATTEN_DB_0);
+    
     if (LASER_PIN > 0) {
         esp_rom_gpio_pad_select_gpio(LASER_PIN);
         gpio_set_direction(LASER_PIN, GPIO_MODE_OUTPUT);
@@ -42,25 +47,37 @@ void sound_detector_setup() {
 void turn_on_laser() {
     gpio_set_level(LASER_PIN, 1);
     nvs_write_int_value("laser", 1);
+
+    if(xSemaphoreTake(envioMqttMutex, portMAX_DELAY)) {
+        mqtt_envia_mensagem("v1/devices/me/attributes", "{\"laser\": true}");
+        xSemaphoreGive(envioMqttMutex);
+    }
 }
 
 void turn_off_laser() {
     gpio_set_level(LASER_PIN, 0);
     nvs_write_int_value("laser", 0);
+    
+    if(xSemaphoreTake(envioMqttMutex, portMAX_DELAY)) {
+        mqtt_envia_mensagem("v1/devices/me/attributes", "{\"laser\": false}");
+        xSemaphoreGive(envioMqttMutex);
+    }
 }
 
 void sound_detector_verify_task(void * params) {
-    int sound_value;
-    while (true) {
-        adc2_get_raw(SOUND_DETECTOR_ANALOG_PIN, ADC_WIDTH_BIT_DEFAULT, &sound_value);
+    int sound_value = 0;
 
-        // printf("\nSOUND VALUE: %d\n", sound_value);
+    while (true) {
+        sound_value = adc1_get_raw(SOUND_DETECTOR_ANALOG_PIN);
+
+        printf("\nSOUND VALUE: %d\n", sound_value);
 
         if (sound_value >= SOUND_DETECTOR_VALUE_THRESHOLD) {
-            printf("Som passou do limiar configurado: %d", sound_value);
+            printf("Som passou do limiar configurado: %d\n", sound_value);
+
             turn_on_laser();
             
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
 
             turn_off_laser();
         }

@@ -44,7 +44,8 @@ bool get_flame_alarm_on() {
 void set_flame_alarm_on_to(bool value) {
     if(xSemaphoreTake(flame_alarm_mutex, portMAX_DELAY)) {
         flame_alarm_on = value;
-        printf("flame alarm on: %d\n", flame_alarm_on);
+
+        nvs_write_int_value("fire_alarm_on", value ? 1 : 0);
 
         xSemaphoreGive(flame_alarm_mutex);
     }
@@ -118,47 +119,46 @@ void * turn_on_led_alarm_till_is_off(void * args) {
 void flame_detector_turn_on_alarm() {
     if (!get_flame_alarm_on()) {
         pthread_t tid;
+        
         set_flame_alarm_on_to(true);
 
         pthread_create(&tid, 0, (void * (*)(void *)) turn_on_led_alarm_till_is_off, (void *) NULL);
-
         pthread_detach(tid);
 
         if(xSemaphoreTake(envioMqttMutex, portMAX_DELAY)) {
             mqtt_envia_mensagem("v1/devices/me/attributes", "{\"fire_alarm_on\": true}");
-            nvs_write_int_value("fire_alarm_on", 1);
 
             xSemaphoreGive(envioMqttMutex);
         }
-    }
+    }   
 }
 
 void flame_detector_posedge_handler() {
     flame_detector_turn_on_alarm();
 }
 
-void flame_detector_alarm_button_handler() {
+void flame_detector_turn_off_alarm() {
     if (get_flame_alarm_on() || gpio_get_level(FLAME_DETECTOR_ALARM_LED_PIN)) {
         set_flame_alarm_on_to(false);
+
         ledc_fade_func_uninstall();
         gpio_set_level(FLAME_DETECTOR_ALARM_LED_PIN, 0);
 
         if(xSemaphoreTake(envioMqttMutex, portMAX_DELAY)) {
             mqtt_envia_mensagem("v1/devices/me/attributes", "{\"fire_alarm_on\": false}");
-            nvs_write_int_value("fire_alarm_on", 0);
 
             xSemaphoreGive(envioMqttMutex);
         }
     }
+
 }
 
 void flame_detector_read_state_from_nvs() {
     int value;
 
-    if (nvs_read_int_value("fire_alarm_on", &value)) {
+    if (nvs_read_int_value("fire_alarm_on", &value) && value == 1) {
         flame_detector_turn_on_alarm();
     } else {
-        flame_detector_alarm_button_handler();
-        nvs_write_int_value("fire_alarm_on", 0);
+        flame_detector_turn_off_alarm();
     }
 }

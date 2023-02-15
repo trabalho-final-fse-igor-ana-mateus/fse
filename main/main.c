@@ -38,7 +38,7 @@ void handle_interruption(void * params) {
 
     while (true) {
       if (xQueueReceive(interruption_queue, &pin, portMAX_DELAY)) {
-        printf("Interrupt in pin %d\n", pin);
+        // printf("Interrupt in pin %d\n", pin);
 
         if (pin == FLAME_DETECTOR_DIGITAL_PIN) {
           if (gpio_get_level(FLAME_DETECTOR_DIGITAL_PIN)) {
@@ -49,7 +49,7 @@ void handle_interruption(void * params) {
     }
 }
 
-void conectadoWifi(void * params)
+void conectado_wifi(void * params)
 {
   while(true) 
   {
@@ -73,37 +73,43 @@ void trataComunicacaoComServidor(void * params)
     }
 
     if (has_sound_detector_sensor()) {
-      xTaskCreate(&sound_detector_verify_task, "Leitura Sensor de Som", 1024, NULL, 1, NULL);
+      xTaskCreate(&sound_detector_verify_task, "Leitura Sensor de Som", 2048, NULL, 1, NULL);
     }
   }
 }
 
-void app_main(void)
-{
-    // Inicializa o NVS
-    setup_nvs();
-    
-    conexaoWifiSemaphore = xSemaphoreCreateBinary();
-    conexaoMQTTSemaphore = xSemaphoreCreateBinary();
-    envioMqttMutex = xSemaphoreCreateMutex();
-    
-    setup_temperature();
+void app_main(void) {
+  // Inicializa o NVS
+  setup_nvs();
+  
+  conexaoWifiSemaphore = xSemaphoreCreateBinary();
+  conexaoMQTTSemaphore = xSemaphoreCreateBinary();
+  envioMqttMutex = xSemaphoreCreateMutex();
+  
+  setup_temperature();
 
-    flame_detector_setup();
+  flame_detector_setup();
 
-    sound_detector_setup();
+  sound_detector_setup();
 
-    wifi_start();
+  wifi_start();
 
-    interruption_queue = xQueueCreate(INTERRUPTION_QUEUE_SIZE, sizeof(int));
-    xTaskCreate(&handle_interruption,  "Trata interrupções", 2048, NULL, 1, NULL);
+  interruption_queue = xQueueCreate(INTERRUPTION_QUEUE_SIZE, sizeof(int));
+  xTaskCreate(&handle_interruption,  "Trata interrupções", 2048, NULL, 1, NULL);
 
-    gpio_install_isr_service(0);
-    gpio_isr_handler_add(FLAME_DETECTOR_DIGITAL_PIN, gpio_isr_handler, (void *) FLAME_DETECTOR_DIGITAL_PIN);
+  gpio_install_isr_service(0);
+  gpio_isr_handler_add(FLAME_DETECTOR_DIGITAL_PIN, gpio_isr_handler, (void *) FLAME_DETECTOR_DIGITAL_PIN);
 
-    flame_detector_read_state_from_nvs();
-    sound_detector_read_state_from_nvs();
+  xTaskCreate(&conectado_wifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
+  // xTaskCreate(&trataComunicacaoComServidor, "Comunicação com Broker", 4096, NULL, 1, NULL);
 
-    xTaskCreate(&conectadoWifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
-    xTaskCreate(&trataComunicacaoComServidor, "Comunicação com Broker", 4096, NULL, 1, NULL);
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+  xTaskCreate(&handle_temperature_sensor, "Leitura Sensor Temperatura", 2048, NULL, 1, NULL);
+  xTaskCreate(&handle_average_temperature, "Calculo Média Temperatura Envio MQTT", 4096, NULL, 1, NULL);
+
+  xTaskCreate(&sound_detector_verify_task, "Leitura Sensor de Som", 2048, NULL, 1, NULL);
+
+  flame_detector_read_state_from_nvs();
+  sound_detector_read_state_from_nvs();
 }
